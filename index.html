@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#4e73df">
+<title>Time Execution Tracker</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f2f4f8;
+    -webkit-tap-highlight-color: transparent;
+}
+
+header {
+    background: linear-gradient(135deg, #4e73df, #224abe);
+    color: white;
+    padding: 16px;
+    text-align: center;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.container {
+    padding: 16px;
+    padding-bottom: 100px;
+    max-width: 600px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 18px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    margin-bottom: 15px;
+}
+
+.time-range {
+    font-size: 14px;
+    color: #666;
+}
+
+.task-name {
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 6px;
+    color: #333;
+}
+
+button {
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: #4e73df;
+    color: white;
+    width: 100%;
+    margin-top: 12px;
+    font-size: 16px;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-top: 8px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: white;
+    display: flex;
+    justify-content: space-around;
+    padding: 14px 0;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+}
+
+.bottom-nav button {
+    background: none;
+    font-size: 22px;
+    color: #4e73df;
+    width: auto;
+}
+
+.hidden {
+    display: none;
+}
+
+.progress-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: conic-gradient(#4e73df 0deg, #e0e0e0 0deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+    font-size: 24px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<header>Time Execution Tracker</header>
+
+<div class="container">
+
+<!-- NOW SCREEN -->
+<div id="nowScreen">
+    <div class="card">
+        <div class="time-range" id="currentTime"></div>
+        <div class="task-name" id="currentTask">No Task</div>
+    </div>
+</div>
+
+<!-- PREVIOUS SCREEN -->
+<div id="previousScreen" class="hidden">
+    <div class="card">
+        <div class="task-name" id="previousTask">No Previous Task</div>
+        <button onclick="markDone()">Mark as Done ✔</button>
+    </div>
+</div>
+
+<!-- PROGRESS SCREEN -->
+<div id="progressScreen" class="hidden">
+    <div class="card">
+        <div class="progress-circle" id="progressCircle">0%</div>
+        <div style="text-align:center;">Today's Discipline</div>
+    </div>
+</div>
+
+<!-- EDIT SCREEN -->
+<div id="editScreen" class="hidden">
+    <div class="card">
+        <input type="time" id="startTime">
+        <input type="time" id="endTime">
+        <input type="text" id="taskName" placeholder="Task name">
+        <button onclick="addTask()">Add Task</button>
+    </div>
+</div>
+
+</div>
+
+<div class="bottom-nav">
+    <button onclick="showScreen('now')">⏰</button>
+    <button onclick="showScreen('previous')">📋</button>
+    <button onclick="showScreen('progress')">📊</button>
+    <button onclick="showScreen('edit')">⚙</button>
+</div>
+
+<script>
+let timetable = JSON.parse(localStorage.getItem("timetable")) || [];
+let completed = JSON.parse(localStorage.getItem("completed")) || [];
+let lastDate = localStorage.getItem("lastDate");
+
+function checkNewDay() {
+    const today = new Date().toDateString();
+    if (lastDate !== today) {
+        completed = [];
+        localStorage.setItem("completed", JSON.stringify(completed));
+        localStorage.setItem("lastDate", today);
+    }
+}
+
+function saveData() {
+    localStorage.setItem("timetable", JSON.stringify(timetable));
+    localStorage.setItem("completed", JSON.stringify(completed));
+}
+
+function addTask() {
+    const start = document.getElementById("startTime").value;
+    const end = document.getElementById("endTime").value;
+    const task = document.getElementById("taskName").value;
+
+    if (start && end && task) {
+        timetable.push({ start, end, task });
+        timetable.sort((a, b) => a.start.localeCompare(b.start));
+        saveData();
+        alert("Task Added");
+    }
+}
+
+function showScreen(screen) {
+    document.getElementById("nowScreen").classList.add("hidden");
+    document.getElementById("previousScreen").classList.add("hidden");
+    document.getElementById("progressScreen").classList.add("hidden");
+    document.getElementById("editScreen").classList.add("hidden");
+
+    if (screen === "now") document.getElementById("nowScreen").classList.remove("hidden");
+    if (screen === "previous") document.getElementById("previousScreen").classList.remove("hidden");
+    if (screen === "progress") document.getElementById("progressScreen").classList.remove("hidden");
+    if (screen === "edit") document.getElementById("editScreen").classList.remove("hidden");
+}
+
+function updateCurrentTask() {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0,5);
+
+    let current = timetable.find(t => currentTime >= t.start && currentTime < t.end);
+
+    if (current) {
+        document.getElementById("currentTime").innerText = current.start + " — " + current.end;
+        document.getElementById("currentTask").innerText = current.task;
+    } else {
+        document.getElementById("currentTask").innerText = "No Scheduled Task";
+        document.getElementById("currentTime").innerText = "";
+    }
+}
+
+function getPreviousTask() {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0,5);
+
+    let past = timetable.filter(t => t.end < currentTime);
+    return past[past.length - 1];
+}
+
+function markDone() {
+    const previous = getPreviousTask();
+    if (previous && !completed.includes(previous.start)) {
+        completed.push(previous.start);
+        saveData();
+        alert("Marked Done ✔");
+    }
+}
+
+function updatePrevious() {
+    const previous = getPreviousTask();
+    if (previous) {
+        document.getElementById("previousTask").innerText =
+            previous.start + " — " + previous.end + " : " + previous.task;
+    }
+}
+
+function updateProgress() {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0,5);
+
+    let ended = timetable.filter(t => t.end < currentTime);
+    let done = ended.filter(t => completed.includes(t.start)).length;
+
+    let percent = ended.length ? Math.floor((done / ended.length) * 100) : 0;
+
+    let circle = document.getElementById("progressCircle");
+    circle.innerText = percent + "%";
+    circle.style.background = `conic-gradient(#4e73df ${percent * 3.6}deg, #e0e0e0 0deg)`;
+}
+
+function updateAll() {
+    checkNewDay();
+    updateCurrentTask();
+    updatePrevious();
+    updateProgress();
+}
+
+setInterval(updateAll, 60000);
+updateAll();
+</script>
+
+</body>
+  </html>
